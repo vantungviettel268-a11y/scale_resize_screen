@@ -14,6 +14,7 @@ class ResizableWidget extends StatefulWidget {
   final ValueChanged<double>? onHeightChanged;
   final ValueChanged<double>? onResizeEnd;
   final ValueChanged<bool>? onResizeStateChanged;
+  final VoidCallback? onRemove;
 
   const ResizableWidget({
     super.key,
@@ -28,6 +29,7 @@ class ResizableWidget extends StatefulWidget {
     this.onResizeEnd,
     required this.largeItemWidth,
     this.onResizeStateChanged,
+    this.onRemove,
   });
 
   @override
@@ -110,7 +112,14 @@ class _ResizableWidgetState extends State<ResizableWidget>
             Positioned(
               top: -10,
               left: -10,
-              child: SvgPicture.asset('assets/images/icon_remove.svg'),
+              child: GestureDetector(
+                onTap: widget.onRemove,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: SvgPicture.asset('assets/images/icon_remove.svg'),
+                ),
+              ),
             ),
             Positioned(
               bottom: -34,

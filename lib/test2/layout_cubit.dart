@@ -31,7 +31,7 @@ class LayoutCubit extends Cubit<LayoutState> {
     if (isLayoutSaved) {
       // Đọc thứ tự đã lưu
       final orderList = prefs.getStringList('item_order');
-      
+
       // Tạo map để truy cập children theo ID (index gốc)
       final childrenMap = <int, Widget>{};
       for (int i = 0; i < children.length; i++) {
@@ -54,7 +54,7 @@ class LayoutCubit extends Cubit<LayoutState> {
           child: childrenMap[id] ?? children[id],
         );
       }).toList();
-      
+
       emit(state.copyWith(items: items));
     } else {
       final items = List.generate(
@@ -106,6 +106,14 @@ class LayoutCubit extends Cubit<LayoutState> {
 
   void cancelReorder() {
     emit(state.copyWith(resetDraggedItem: true));
+  }
+
+  void removeItem(int index) {
+    final newItems = List<ResizableItemData>.from(state.items);
+    if (index >= 0 && index < newItems.length) {
+      newItems.removeAt(index);
+      emit(state.copyWith(items: newItems));
+    }
   }
 
   void updateItemWidth(int index, double newWidth) {

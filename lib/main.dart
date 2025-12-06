@@ -58,9 +58,15 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: BlocProvider(
-        create: (context) => LayoutCubit(),
-        child: LayoutEditorPage(children: sampleChildren),
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Layout Editor (Cubit)')),
+        body: BlocProvider(
+          create: (context) => LayoutCubit(),
+          child: LayoutEditorPage(
+            children: sampleChildren,
+            onItemRemoved: (value) {},
+          ),
+        ),
       ),
     );
   }

@@ -8,8 +8,9 @@ import 'resizable_widget.dart';
 
 class LayoutEditorPage extends StatefulWidget {
   final List<Widget>? children;
+  final ValueChanged<int>? onItemRemoved;
 
-  const LayoutEditorPage({super.key, this.children});
+  const LayoutEditorPage({super.key, this.children, this.onItemRemoved});
 
   @override
   State<LayoutEditorPage> createState() => _LayoutEditorPageState();
@@ -56,95 +57,108 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
         (screenWidth - (paddingValue * 2) - horizontalItemSpacing) / 2;
     final largeItemWidth = screenWidth - (paddingValue * 2);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Layout Editor (Cubit)')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.read<LayoutCubit>().saveLayout();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Layout saved!')));
-        },
-        child: const Icon(Icons.save),
-      ),
-      body: BlocBuilder<LayoutCubit, LayoutState>(
-        builder: (context, state) {
-          if (state.items.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return Stack(
+      children: [
+        BlocBuilder<LayoutCubit, LayoutState>(
+          builder: (context, state) {
+            if (state.items.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final wrap = ReorderableWrap(
-            spacing: horizontalItemSpacing,
-            runSpacing: verticalItemSpacing,
-            padding: const EdgeInsets.all(paddingValue),
-            onReorder: context.read<LayoutCubit>().reorderItems,
-            onNoReorder: (index) => context.read<LayoutCubit>().cancelReorder(),
-            onReorderStarted: (index) =>
-                context.read<LayoutCubit>().startReorder(index),
-            children: state.items.asMap().entries.map((entry) {
-              final int index = entry.key;
-              final itemData = entry.value;
+            final wrap = ReorderableWrap(
+              spacing: horizontalItemSpacing,
+              runSpacing: verticalItemSpacing,
+              padding: const EdgeInsets.all(paddingValue),
+              onReorder: context.read<LayoutCubit>().reorderItems,
+              onNoReorder: (index) =>
+                  context.read<LayoutCubit>().cancelReorder(),
+              onReorderStarted: (index) =>
+                  context.read<LayoutCubit>().startReorder(index),
+              children: state.items.asMap().entries.map((entry) {
+                final int index = entry.key;
+                final itemData = entry.value;
 
-              final childWidget = ResizableWidget(
-                key: ValueKey(itemData.id),
-                initialWidth: itemData.width,
-                initialHeight: itemData.height,
-                maxSize: largeItemWidth,
-                smallItemWidth: smallItemWidth,
-                largeItemWidth: largeItemWidth,
-                onWidthChanged: (newWidth) {
-                  context.read<LayoutCubit>().updateItemWidth(index, newWidth);
-                },
-                onHeightChanged: (newHeight) {
-                  context.read<LayoutCubit>().updateItemHeight(
-                    index,
-                    newHeight,
-                  );
-                },
-                onResizeEnd: (finalHeight) {
-                  // Comment out to prevent auto-syncing heights
-                  // context.read<LayoutCubit>().syncRowHeightsOnResizeEnd(
-                  //   index,
-                  //   finalHeight,
-                  //   largeItemWidth,
-                  // );
-                },
-                onResizeStateChanged: (isResizing) {
-                  setState(() {
-                    if (isResizing) {
-                      _resizingCount++;
-                    } else {
-                      _resizingCount = (_resizingCount - 1)
-                          .clamp(0, double.infinity)
-                          .toInt();
-                    }
-                  });
-                },
-                child: itemData.child,
-              );
-
-              if (state.draggedItemIndex != null &&
-                  state.draggedItemIndex != index) {
-                return ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                  child: childWidget,
+                final childWidget = ResizableWidget(
+                  key: ValueKey(itemData.id),
+                  initialWidth: itemData.width,
+                  initialHeight: itemData.height,
+                  maxSize: largeItemWidth,
+                  smallItemWidth: smallItemWidth,
+                  largeItemWidth: largeItemWidth,
+                  onWidthChanged: (newWidth) {
+                    context.read<LayoutCubit>().updateItemWidth(
+                      index,
+                      newWidth,
+                    );
+                  },
+                  onHeightChanged: (newHeight) {
+                    context.read<LayoutCubit>().updateItemHeight(
+                      index,
+                      newHeight,
+                    );
+                  },
+                  onResizeEnd: (finalHeight) {
+                    // Comment out to prevent auto-syncing heights
+                    // context.read<LayoutCubit>().syncRowHeightsOnResizeEnd(
+                    //   index,
+                    //   finalHeight,
+                    //   largeItemWidth,
+                    // );
+                  },
+                  onResizeStateChanged: (isResizing) {
+                    setState(() {
+                      if (isResizing) {
+                        _resizingCount++;
+                      } else {
+                        _resizingCount = (_resizingCount - 1)
+                            .clamp(0, double.infinity)
+                            .toInt();
+                      }
+                    });
+                  },
+                  onRemove: () {
+                    context.read<LayoutCubit>().removeItem(index);
+                    widget.onItemRemoved?.call(index);
+                  },
+                  child: itemData.child,
                 );
-              }
-              return childWidget;
-            }).toList(),
-          );
 
-          return SingleChildScrollView(
-            physics: _resizingCount > 0
-                ? const NeverScrollableScrollPhysics()
-                : const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[wrap],
-            ),
-          );
-        },
-      ),
+                if (state.draggedItemIndex != null &&
+                    state.draggedItemIndex != index) {
+                  return ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: childWidget,
+                  );
+                }
+                return childWidget;
+              }).toList(),
+            );
+
+            return SingleChildScrollView(
+              physics: _resizingCount > 0
+                  ? const NeverScrollableScrollPhysics()
+                  : const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[wrap],
+              ),
+            );
+          },
+        ),
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton(
+            onPressed: () {
+              context.read<LayoutCubit>().saveLayout();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Layout saved!')));
+            },
+            child: const Icon(Icons.save),
+          ),
+        ),
+      ],
     );
   }
 }
