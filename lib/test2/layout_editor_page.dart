@@ -7,7 +7,9 @@ import 'layout_state.dart';
 import 'resizable_widget.dart';
 
 class LayoutEditorPage extends StatefulWidget {
-  const LayoutEditorPage({super.key});
+  final List<Widget>? children;
+
+  const LayoutEditorPage({super.key, this.children});
 
   @override
   State<LayoutEditorPage> createState() => _LayoutEditorPageState();
@@ -23,9 +25,22 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
       final screenWidth = MediaQuery.of(context).size.width;
       const double paddingValue = 18.0;
       const double horizontalItemSpacing = 9.0;
-      final smallItemWidth = (screenWidth - (paddingValue * 2) - horizontalItemSpacing) / 2;
+      final smallItemWidth =
+          (screenWidth - (paddingValue * 2) - horizontalItemSpacing) / 2;
       const double initialHeight = 250.0;
-      context.read<LayoutCubit>().initializeItems(smallItemWidth, initialHeight);
+
+      if (widget.children != null && widget.children!.isNotEmpty) {
+        context.read<LayoutCubit>().initializeWithChildren(
+          widget.children!,
+          smallItemWidth,
+          initialHeight,
+        );
+      } else {
+        context.read<LayoutCubit>().initializeItems(
+          smallItemWidth,
+          initialHeight,
+        );
+      }
       _initialized = true;
     }
   }
@@ -36,7 +51,8 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
     const double paddingValue = 18.0;
     const double horizontalItemSpacing = 9.0;
     const double verticalItemSpacing = horizontalItemSpacing * 2.1;
-    final smallItemWidth = (screenWidth - (paddingValue * 2) - horizontalItemSpacing) / 2;
+    final smallItemWidth =
+        (screenWidth - (paddingValue * 2) - horizontalItemSpacing) / 2;
     final largeItemWidth = screenWidth - (paddingValue * 2);
 
     return Scaffold(
@@ -53,7 +69,8 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
             padding: const EdgeInsets.all(paddingValue),
             onReorder: context.read<LayoutCubit>().reorderItems,
             onNoReorder: (index) => context.read<LayoutCubit>().cancelReorder(),
-            onReorderStarted: (index) => context.read<LayoutCubit>().startReorder(index),
+            onReorderStarted: (index) =>
+                context.read<LayoutCubit>().startReorder(index),
             children: state.items.asMap().entries.map((entry) {
               final int index = entry.key;
               final itemData = entry.value;
@@ -66,18 +83,27 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
                 smallItemWidth: smallItemWidth,
                 largeItemWidth: largeItemWidth,
                 onWidthChanged: (newWidth) {
-                   context.read<LayoutCubit>().updateItemWidth(index, newWidth);
+                  context.read<LayoutCubit>().updateItemWidth(index, newWidth);
                 },
                 onHeightChanged: (newHeight) {
-                  context.read<LayoutCubit>().updateItemHeight(index, newHeight);
+                  context.read<LayoutCubit>().updateItemHeight(
+                    index,
+                    newHeight,
+                  );
                 },
                 onResizeEnd: (finalHeight) {
-                  context.read<LayoutCubit>().syncRowHeightsOnResizeEnd(index, finalHeight, largeItemWidth);
+                  // Comment out to prevent auto-syncing heights
+                  // context.read<LayoutCubit>().syncRowHeightsOnResizeEnd(
+                  //   index,
+                  //   finalHeight,
+                  //   largeItemWidth,
+                  // );
                 },
                 child: itemData.child,
               );
 
-              if (state.draggedItemIndex != null && state.draggedItemIndex != index) {
+              if (state.draggedItemIndex != null &&
+                  state.draggedItemIndex != index) {
                 return ImageFiltered(
                   imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
                   child: childWidget,

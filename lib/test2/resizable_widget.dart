@@ -32,7 +32,8 @@ class ResizableWidget extends StatefulWidget {
   State<ResizableWidget> createState() => _ResizableWidgetState();
 }
 
-class _ResizableWidgetState extends State<ResizableWidget> with SingleTickerProviderStateMixin {
+class _ResizableWidgetState extends State<ResizableWidget>
+    with SingleTickerProviderStateMixin {
   late double _width;
   late double _height;
   late AnimationController _controller;
@@ -57,11 +58,15 @@ class _ResizableWidgetState extends State<ResizableWidget> with SingleTickerProv
   @override
   void didUpdateWidget(covariant ResizableWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialWidth != _width) {
-       _width = widget.initialWidth;
+    // Only update width if it significantly changed (not from height resize)
+    if ((widget.initialWidth - _width).abs() > 1) {
+      _width = widget.initialWidth;
     }
 
-    if (widget.initialHeight != oldWidget.initialHeight && widget.initialHeight != _height) {
+    // Only animate height if it changed from outside (not from user drag)
+    if (widget.initialHeight != oldWidget.initialHeight &&
+        (widget.initialHeight - _height).abs() > 1 &&
+        !_controller.isAnimating) {
       final heightAnimation = Tween<double>(
         begin: _height,
         end: widget.initialHeight,
@@ -122,26 +127,35 @@ class _ResizableWidgetState extends State<ResizableWidget> with SingleTickerProv
                 });
               },
               onPanEnd: (details) {
-                final threshold = (widget.smallItemWidth + widget.largeItemWidth) / 2;
+                final threshold =
+                    (widget.smallItemWidth + widget.largeItemWidth) / 2;
                 final targetWidth = _width > threshold
                     ? widget.largeItemWidth
                     : widget.smallItemWidth;
 
-                final widthAnimation = Tween<double>(begin: _width, end: targetWidth)
-                    .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+                final widthAnimation =
+                    Tween<double>(begin: _width, end: targetWidth).animate(
+                      CurvedAnimation(
+                        parent: _controller,
+                        curve: Curves.easeOut,
+                      ),
+                    );
 
+                AnimationStatusListener? statusListener;
                 widthAnimation.addListener(() {
                   setState(() {
                     _width = widthAnimation.value;
                     widget.onWidthChanged?.call(_width);
                   });
                 });
-                
-                _controller.addStatusListener((status) {
+
+                statusListener = (status) {
                   if (status == AnimationStatus.completed) {
                     widget.onResizeEnd?.call(_height);
+                    _controller.removeStatusListener(statusListener!);
                   }
-                });
+                };
+                _controller.addStatusListener(statusListener);
 
                 _controller.forward(from: 0);
               },

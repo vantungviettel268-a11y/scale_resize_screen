@@ -28,6 +28,23 @@ class LayoutCubit extends Cubit<LayoutState> {
     emit(state.copyWith(items: items));
   }
 
+  void initializeWithChildren(
+    List<Widget> children,
+    double initialSmallWidth,
+    double initialHeight,
+  ) {
+    final items = List.generate(
+      children.length,
+      (index) => ResizableItemData(
+        id: index,
+        width: initialSmallWidth,
+        height: initialHeight,
+        child: children[index],
+      ),
+    );
+    emit(state.copyWith(items: items));
+  }
+
   void reorderItems(int oldIndex, int newIndex) {
     final newItems = List<ResizableItemData>.from(state.items);
     final item = newItems.removeAt(oldIndex);
@@ -49,7 +66,7 @@ class LayoutCubit extends Cubit<LayoutState> {
     newItems[index] = item.copyWith(width: newWidth);
     emit(state.copyWith(items: newItems));
   }
-  
+
   void updateItemHeight(int index, double newHeight) {
     final newItems = List<ResizableItemData>.from(state.items);
     final item = newItems[index];
@@ -57,7 +74,11 @@ class LayoutCubit extends Cubit<LayoutState> {
     emit(state.copyWith(items: newItems));
   }
 
-  void syncRowHeightsOnResizeEnd(int resizedItemIndex, double finalHeight, double largeItemWidth) {
+  void syncRowHeightsOnResizeEnd(
+    int resizedItemIndex,
+    double finalHeight,
+    double largeItemWidth,
+  ) {
     final List<List<ResizableItemData>> rows = [];
     final currentItems = state.items;
     int i = 0;
@@ -68,7 +89,8 @@ class LayoutCubit extends Cubit<LayoutState> {
         i++;
       } else {
         final newRow = [currentItem];
-        if (i + 1 < currentItems.length && currentItems[i + 1].width < largeItemWidth - 1) {
+        if (i + 1 < currentItems.length &&
+            currentItems[i + 1].width < largeItemWidth - 1) {
           newRow.add(currentItems[i + 1]);
           i += 2;
         } else {
@@ -90,9 +112,13 @@ class LayoutCubit extends Cubit<LayoutState> {
       final newItems = List<ResizableItemData>.from(currentItems);
       final targetRow = rows[targetRowIndex];
       for (final itemToUpdate in targetRow) {
-        final itemIndex = newItems.indexWhere((item) => item.id == itemToUpdate.id);
+        final itemIndex = newItems.indexWhere(
+          (item) => item.id == itemToUpdate.id,
+        );
         if (itemIndex != -1) {
-          newItems[itemIndex] = newItems[itemIndex].copyWith(height: finalHeight);
+          newItems[itemIndex] = newItems[itemIndex].copyWith(
+            height: finalHeight,
+          );
         }
       }
       emit(state.copyWith(items: newItems));
