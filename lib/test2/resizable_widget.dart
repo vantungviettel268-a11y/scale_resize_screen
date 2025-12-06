@@ -13,6 +13,7 @@ class ResizableWidget extends StatefulWidget {
   final double largeItemWidth;
   final ValueChanged<double>? onHeightChanged;
   final ValueChanged<double>? onResizeEnd;
+  final ValueChanged<bool>? onResizeStateChanged;
 
   const ResizableWidget({
     super.key,
@@ -26,6 +27,7 @@ class ResizableWidget extends StatefulWidget {
     required this.smallItemWidth,
     this.onResizeEnd,
     required this.largeItemWidth,
+    this.onResizeStateChanged,
   });
 
   @override
@@ -114,10 +116,12 @@ class _ResizableWidgetState extends State<ResizableWidget>
               bottom: -34,
               right: -34,
               child: Listener(
+                behavior: HitTestBehavior.opaque,
                 onPointerDown: (event) {
                   _isResizing = true;
                   _lastPanPosition = event.position;
                   _controller.stop();
+                  widget.onResizeStateChanged?.call(true);
                 },
                 onPointerMove: (event) {
                   if (_isResizing && _lastPanPosition != null) {
@@ -141,6 +145,7 @@ class _ResizableWidgetState extends State<ResizableWidget>
                   if (_isResizing) {
                     _isResizing = false;
                     _lastPanPosition = null;
+                    widget.onResizeStateChanged?.call(false);
 
                     final threshold =
                         (widget.smallItemWidth + widget.largeItemWidth) / 2;
@@ -178,6 +183,7 @@ class _ResizableWidgetState extends State<ResizableWidget>
                 onPointerCancel: (event) {
                   _isResizing = false;
                   _lastPanPosition = null;
+                  widget.onResizeStateChanged?.call(false);
                 },
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,

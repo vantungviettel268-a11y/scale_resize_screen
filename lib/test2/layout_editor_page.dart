@@ -17,6 +17,7 @@ class LayoutEditorPage extends StatefulWidget {
 
 class _LayoutEditorPageState extends State<LayoutEditorPage> {
   bool _initialized = false;
+  int _resizingCount = 0;
 
   @override
   void didChangeDependencies() {
@@ -31,15 +32,15 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
 
       if (widget.children != null && widget.children!.isNotEmpty) {
         context.read<LayoutCubit>().loadLayout(
-              widget.children!,
-              smallItemWidth,
-              initialHeight,
-            );
+          widget.children!,
+          smallItemWidth,
+          initialHeight,
+        );
       } else {
         context.read<LayoutCubit>().initializeItems(
-              smallItemWidth,
-              initialHeight,
-            );
+          smallItemWidth,
+          initialHeight,
+        );
       }
       _initialized = true;
     }
@@ -60,9 +61,9 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.read<LayoutCubit>().saveLayout();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Layout saved!')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Layout saved!')));
         },
         child: const Icon(Icons.save),
       ),
@@ -96,9 +97,9 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
                 },
                 onHeightChanged: (newHeight) {
                   context.read<LayoutCubit>().updateItemHeight(
-                        index,
-                        newHeight,
-                      );
+                    index,
+                    newHeight,
+                  );
                 },
                 onResizeEnd: (finalHeight) {
                   // Comment out to prevent auto-syncing heights
@@ -107,6 +108,17 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
                   //   finalHeight,
                   //   largeItemWidth,
                   // );
+                },
+                onResizeStateChanged: (isResizing) {
+                  setState(() {
+                    if (isResizing) {
+                      _resizingCount++;
+                    } else {
+                      _resizingCount = (_resizingCount - 1)
+                          .clamp(0, double.infinity)
+                          .toInt();
+                    }
+                  });
                 },
                 child: itemData.child,
               );
@@ -123,6 +135,9 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
           );
 
           return SingleChildScrollView(
+            physics: _resizingCount > 0
+                ? const NeverScrollableScrollPhysics()
+                : const AlwaysScrollableScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[wrap],
