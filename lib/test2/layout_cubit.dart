@@ -9,10 +9,14 @@ class LayoutCubit extends Cubit<LayoutState> {
 
   Future<void> saveLayout() async {
     final prefs = await SharedPreferences.getInstance();
+    // Lưu width và height cho từng item
     for (var item in state.items) {
       await prefs.setDouble('item_${item.id}_width', item.width);
       await prefs.setDouble('item_${item.id}_height', item.height);
     }
+    // Lưu thứ tự (index) của các item
+    final orderList = state.items.map((item) => item.id.toString()).toList();
+    await prefs.setStringList('item_order', orderList);
     await prefs.setBool('layout_saved', true);
   }
 
@@ -25,17 +29,32 @@ class LayoutCubit extends Cubit<LayoutState> {
     final isLayoutSaved = prefs.getBool('layout_saved') ?? false;
 
     if (isLayoutSaved) {
-      final items = List.generate(children.length, (index) {
-        final width = prefs.getDouble('item_${index}_width') ?? initialSmallWidth;
-        final height =
-            prefs.getDouble('item_${index}_height') ?? initialHeight;
+      // Đọc thứ tự đã lưu
+      final orderList = prefs.getStringList('item_order');
+      
+      // Tạo map để truy cập children theo ID (index gốc)
+      final childrenMap = <int, Widget>{};
+      for (int i = 0; i < children.length; i++) {
+        childrenMap[i] = children[i];
+      }
+
+      // Nếu có thứ tự đã lưu, sử dụng nó; nếu không, dùng thứ tự mặc định
+      final itemOrder = orderList != null && orderList.length == children.length
+          ? orderList.map((idStr) => int.parse(idStr)).toList()
+          : List.generate(children.length, (index) => index);
+
+      // Tạo items theo thứ tự đã lưu
+      final items = itemOrder.map((id) {
+        final width = prefs.getDouble('item_${id}_width') ?? initialSmallWidth;
+        final height = prefs.getDouble('item_${id}_height') ?? initialHeight;
         return ResizableItemData(
-          id: index,
+          id: id,
           width: width,
           height: height,
-          child: children[index],
+          child: childrenMap[id] ?? children[id],
         );
-      });
+      }).toList();
+      
       emit(state.copyWith(items: items));
     } else {
       final items = List.generate(
