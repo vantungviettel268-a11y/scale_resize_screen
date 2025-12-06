@@ -1,10 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'layout_state.dart';
 import 'resizable_item_data.dart';
 
 class LayoutCubit extends Cubit<LayoutState> {
   LayoutCubit() : super(const LayoutState());
+
+  Future<void> saveLayout() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (var item in state.items) {
+      await prefs.setDouble('item_${item.id}_width', item.width);
+      await prefs.setDouble('item_${item.id}_height', item.height);
+    }
+    await prefs.setBool('layout_saved', true);
+  }
+
+  Future<void> loadLayout(
+    List<Widget> children,
+    double initialSmallWidth,
+    double initialHeight,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isLayoutSaved = prefs.getBool('layout_saved') ?? false;
+
+    if (isLayoutSaved) {
+      final items = List.generate(children.length, (index) {
+        final width = prefs.getDouble('item_${index}_width') ?? initialSmallWidth;
+        final height =
+            prefs.getDouble('item_${index}_height') ?? initialHeight;
+        return ResizableItemData(
+          id: index,
+          width: width,
+          height: height,
+          child: children[index],
+        );
+      });
+      emit(state.copyWith(items: items));
+    } else {
+      final items = List.generate(
+        children.length,
+        (index) => ResizableItemData(
+          id: index,
+          width: initialSmallWidth,
+          height: initialHeight,
+          child: children[index],
+        ),
+      );
+      emit(state.copyWith(items: items));
+      await saveLayout();
+    }
+  }
 
   void initializeItems(double initialSmallWidth, double initialHeight) {
     final items = List.generate(
@@ -23,23 +69,6 @@ class LayoutCubit extends Cubit<LayoutState> {
             ),
           ),
         ),
-      ),
-    );
-    emit(state.copyWith(items: items));
-  }
-
-  void initializeWithChildren(
-    List<Widget> children,
-    double initialSmallWidth,
-    double initialHeight,
-  ) {
-    final items = List.generate(
-      children.length,
-      (index) => ResizableItemData(
-        id: index,
-        width: initialSmallWidth,
-        height: initialHeight,
-        child: children[index],
       ),
     );
     emit(state.copyWith(items: items));

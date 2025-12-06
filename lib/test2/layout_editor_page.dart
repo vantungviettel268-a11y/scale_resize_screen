@@ -30,16 +30,16 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
       const double initialHeight = 250.0;
 
       if (widget.children != null && widget.children!.isNotEmpty) {
-        context.read<LayoutCubit>().initializeWithChildren(
-          widget.children!,
-          smallItemWidth,
-          initialHeight,
-        );
+        context.read<LayoutCubit>().loadLayout(
+              widget.children!,
+              smallItemWidth,
+              initialHeight,
+            );
       } else {
         context.read<LayoutCubit>().initializeItems(
-          smallItemWidth,
-          initialHeight,
-        );
+              smallItemWidth,
+              initialHeight,
+            );
       }
       _initialized = true;
     }
@@ -57,6 +57,15 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Layout Editor (Cubit)')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.read<LayoutCubit>().saveLayout();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Layout saved!')),
+          );
+        },
+        child: const Icon(Icons.save),
+      ),
       body: BlocBuilder<LayoutCubit, LayoutState>(
         builder: (context, state) {
           if (state.items.isEmpty) {
@@ -87,9 +96,9 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
                 },
                 onHeightChanged: (newHeight) {
                   context.read<LayoutCubit>().updateItemHeight(
-                    index,
-                    newHeight,
-                  );
+                        index,
+                        newHeight,
+                      );
                 },
                 onResizeEnd: (finalHeight) {
                   // Comment out to prevent auto-syncing heights
