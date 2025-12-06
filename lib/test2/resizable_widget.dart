@@ -37,6 +37,8 @@ class _ResizableWidgetState extends State<ResizableWidget>
   late double _width;
   late double _height;
   late AnimationController _controller;
+  bool _isResizing = false;
+  Offset? _lastPanPosition;
 
   @override
   void initState() {
@@ -83,92 +85,117 @@ class _ResizableWidgetState extends State<ResizableWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(0),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: _width,
-            height: _height,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              border: Border.all(color: Colors.grey, width: 0),
-              borderRadius: BorderRadius.circular(15),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Chặn scroll khi đang resize
+        return _isResizing;
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(0),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: _width,
+              height: _height,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                border: Border.all(color: Colors.grey, width: 0),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: SingleChildScrollView(child: widget.child),
             ),
-            child: SingleChildScrollView(child: widget.child),
-          ),
-          Positioned(
-            top: -10,
-            left: -10,
-            child: SvgPicture.asset('assets/images/icon_remove.svg'),
-          ),
-          Positioned(
-            bottom: -34,
-            right: -34,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              dragStartBehavior: DragStartBehavior.down,
-              onPanStart: (details) {
-                _controller.stop();
-              },
-              onPanUpdate: (details) {
-                setState(() {
-                  _width = (_width + details.delta.dx).clamp(
-                    widget.minSize,
-                    widget.maxSize,
-                  );
-                  _height = (_height + details.delta.dy).clamp(
-                    widget.minSize,
-                    double.infinity,
-                  );
-                  widget.onWidthChanged?.call(_width);
-                  widget.onHeightChanged?.call(_height);
-                });
-              },
-              onPanEnd: (details) {
-                final threshold =
-                    (widget.smallItemWidth + widget.largeItemWidth) / 2;
-                final targetWidth = _width > threshold
-                    ? widget.largeItemWidth
-                    : widget.smallItemWidth;
-
-                final widthAnimation =
-                    Tween<double>(begin: _width, end: targetWidth).animate(
-                      CurvedAnimation(
-                        parent: _controller,
-                        curve: Curves.easeOut,
-                      ),
-                    );
-
-                AnimationStatusListener? statusListener;
-                widthAnimation.addListener(() {
-                  setState(() {
-                    _width = widthAnimation.value;
-                    widget.onWidthChanged?.call(_width);
-                  });
-                });
-
-                statusListener = (status) {
-                  if (status == AnimationStatus.completed) {
-                    widget.onResizeEnd?.call(_height);
-                    _controller.removeStatusListener(statusListener!);
+            Positioned(
+              top: -10,
+              left: -10,
+              child: SvgPicture.asset('assets/images/icon_remove.svg'),
+            ),
+            Positioned(
+              bottom: -34,
+              right: -34,
+              child: Listener(
+                onPointerDown: (event) {
+                  _isResizing = true;
+                  _lastPanPosition = event.position;
+                  _controller.stop();
+                },
+                onPointerMove: (event) {
+                  if (_isResizing && _lastPanPosition != null) {
+                    final delta = event.position - _lastPanPosition!;
+                    setState(() {
+                      _width = (_width + delta.dx).clamp(
+                        widget.minSize,
+                        widget.maxSize,
+                      );
+                      _height = (_height + delta.dy).clamp(
+                        widget.minSize,
+                        double.infinity,
+                      );
+                      widget.onWidthChanged?.call(_width);
+                      widget.onHeightChanged?.call(_height);
+                    });
+                    _lastPanPosition = event.position;
                   }
-                };
-                _controller.addStatusListener(statusListener);
+                },
+                onPointerUp: (event) {
+                  if (_isResizing) {
+                    _isResizing = false;
+                    _lastPanPosition = null;
 
-                _controller.forward(from: 0);
-              },
-              child: Container(
-                color: Colors.transparent,
-                child: Padding(
-                  padding: const EdgeInsets.all(30),
-                  child: SvgPicture.asset('assets/images/icon_rectangle.svg'),
+                    final threshold =
+                        (widget.smallItemWidth + widget.largeItemWidth) / 2;
+                    final targetWidth = _width > threshold
+                        ? widget.largeItemWidth
+                        : widget.smallItemWidth;
+
+                    final widthAnimation =
+                        Tween<double>(begin: _width, end: targetWidth).animate(
+                          CurvedAnimation(
+                            parent: _controller,
+                            curve: Curves.easeOut,
+                          ),
+                        );
+
+                    AnimationStatusListener? statusListener;
+                    widthAnimation.addListener(() {
+                      setState(() {
+                        _width = widthAnimation.value;
+                        widget.onWidthChanged?.call(_width);
+                      });
+                    });
+
+                    statusListener = (status) {
+                      if (status == AnimationStatus.completed) {
+                        widget.onResizeEnd?.call(_height);
+                        _controller.removeStatusListener(statusListener!);
+                      }
+                    };
+                    _controller.addStatusListener(statusListener);
+
+                    _controller.forward(from: 0);
+                  }
+                },
+                onPointerCancel: (event) {
+                  _isResizing = false;
+                  _lastPanPosition = null;
+                },
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {}, // Empty handler to prevent tap events
+                  child: Container(
+                    color: Colors.transparent,
+                    child: Padding(
+                      padding: const EdgeInsets.all(30),
+                      child: SvgPicture.asset(
+                        'assets/images/icon_rectangle.svg',
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
