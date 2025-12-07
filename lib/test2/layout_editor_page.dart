@@ -9,14 +9,20 @@ import 'resizable_widget.dart';
 class LayoutEditorPage extends StatefulWidget {
   final List<Widget>? children;
   final ValueChanged<int>? onItemRemoved;
-
   const LayoutEditorPage({super.key, this.children, this.onItemRemoved});
 
   @override
-  State<LayoutEditorPage> createState() => _LayoutEditorPageState();
+  State<LayoutEditorPage> createState() => LayoutEditorPageState();
 }
 
-class _LayoutEditorPageState extends State<LayoutEditorPage> {
+class LayoutEditorPageState extends State<LayoutEditorPage> {
+  void saveLayout() {
+    context.read<LayoutCubit>().saveLayout();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Layout saved!')));
+  }
+
   bool _initialized = false;
   int _resizingCount = 0;
 
@@ -144,19 +150,6 @@ class _LayoutEditorPageState extends State<LayoutEditorPage> {
               ),
             );
           },
-        ),
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: FloatingActionButton(
-            onPressed: () {
-              context.read<LayoutCubit>().saveLayout();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Layout saved!')));
-            },
-            child: const Icon(Icons.save),
-          ),
         ),
       ],
     );

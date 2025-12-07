@@ -8,8 +8,16 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<LayoutEditorPageState> _layoutEditorKey =
+      GlobalKey<LayoutEditorPageState>();
 
   @override
   Widget build(BuildContext context) {
@@ -60,12 +68,27 @@ class MyApp extends StatelessWidget {
       ),
       home: Scaffold(
         appBar: AppBar(title: const Text('Layout Editor (Cubit)')),
-        body: BlocProvider(
-          create: (context) => LayoutCubit(),
-          child: LayoutEditorPage(
-            children: sampleChildren,
-            onItemRemoved: (value) {},
-          ),
+        body: Stack(
+          children: [
+            BlocProvider(
+              create: (context) => LayoutCubit(),
+              child: LayoutEditorPage(
+                key: _layoutEditorKey,
+                children: sampleChildren,
+                onItemRemoved: (value) {},
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: () {
+                  _layoutEditorKey.currentState?.saveLayout();
+                },
+                child: const Icon(Icons.save),
+              ),
+            ),
+          ],
         ),
       ),
     );
