@@ -36,9 +36,28 @@ dependencies:
   cupertino_icons: ^1.0.8
   reorderables: ^0.6.0
   flutter_svg: ^2.2.3
-  flutter_bloc: ^9.1.1
   equatable: ^2.0.7
-  bloc: ^9.1.0
+
+  # Shared package
+  tendoo_shared:
+    hosted:
+      name: tendoo_shared
+      url: http://172.16.28.101:4000
+    version: ^0.0.56
+
+  # Services package
+  tendoo_services:
+    hosted:
+      name: tendoo_services
+      url: http://172.16.28.101:4000
+    version: ^0.0.15
+
+  # Components package
+  tendoo_components:
+    hosted:
+      name: tendoo_components
+      url: http://172.16.28.101:4000
+    version: ^0.0.50
 
 dev_dependencies:
   flutter_test:
@@ -91,3 +110,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+dependency_overrides:
+  tendoo_shared:
+    git:
+      url: http://52.74.56.51/tendoo/frontend/mobile/flutter/tendoo_shared.git
+      ref: add/reorderables
+  tendoo_components:
+    git:
+      url: http://52.74.56.51/tendoo/frontend/mobile/flutter/tendoo_components.git
+      ref: feat/tendoo_resize_drag
